@@ -1,0 +1,29 @@
+name: Auto-create Issue on CI Failure
+on:
+  workflow_run:
+    workflows: ["Run Tests"]
+    types: [completed]
+
+jobs:
+  create-issue:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create issue and assign to Copilot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "CI failure: ${{ github.event.workflow_run.name }}" \
+            --body "## Workflow failed 🔴
+
+          **Workflow:** ${{ github.event.workflow_run.name }}
+          **Branch:** ${{ github.event.workflow_run.head_branch }}
+          **Run URL:** ${{ github.event.workflow_run.html_url }}
+
+          Please investigate and fix the failing workflow." \
+            --assignee "@copilot" \
+            --repo ${{ github.repository }}
