@@ -1,0 +1,56 @@
+name: AI Release Notes
+on:
+  push:
+    branches: [main]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+
+      - name: Collect recent commits
+        id: commits
+        run: |
+          echo "LOG<<EOF" >> $GITHUB_ENV
+          git log -10 --pretty=format:"- %s (%an)" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Generate changelog with Gemini
+        uses: appleboy/llm-action@v1
+        id: ai
+        with:
+          provider: gemini
+          model: gemini-2.0-flash
+          api_key: ${{ secrets.GEMINI_API_KEY }}
+          message: |
+            You are a technical writer. Write a concise, friendly changelog entry
+            for the following commits. Use present tense. Group related changes.
+            Format as markdown with a date header and bullet points.
+
+            Today's date: ${{ github.event.head_commit.timestamp }}
+            Commits:
+            ${{ env.LOG }}
+
+      - name: Prepend to CHANGELOG.md
+        run: |
+          echo "${{ steps.ai.outputs.response }}" > /tmp/new_entry.md
+          echo "" >> /tmp/new_entry.md
+          if [ -f CHANGELOG.md ]; then
+            cat CHANGELOG.md >> /tmp/new_entry.md
+          fi
+          mv /tmp/new_entry.md CHANGELOG.md
+
+      - name: Commit and push changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --staged --quiet || git commit -m "docs: AI-generated changelog update [skip ci]"
+          git push
