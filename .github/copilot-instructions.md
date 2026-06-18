@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-This is the `ai-actions-demo` repository used for demonstrating AI-assisted GitHub Actions workflows.
+This is the `ai-assisted-github-actions` repository used for demonstrating AI-assisted GitHub Actions workflows.
 
 ## Project conventions
 
